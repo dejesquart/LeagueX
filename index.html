@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>LeagueX</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #0d2453;
+    --navy-light: #1a3a6e;
+    --blue-accent: #1565c0;
+    --blue-bright: #1976d2;
+    --cyan: #4fc3f7;
+    --cyan-dark: #0288d1;
+    --white: #e8f4fd;
+    --gold: #ffd54f;
+    --silver: #b0bec5;
+    --bronze: #ff8a65;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* NAVBAR */
+  .nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #060f1f;
+    border-top: 1px solid var(--navy-light);
+    padding: 10px 0 16px;
+    z-index: 100;
+  }
+  .nav-btn {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px; font-size: 10px; color: #4a6a9a;
+    cursor: pointer; transition: color 0.2s;
+    letter-spacing: 1px; font-family: 'Rajdhani', sans-serif;
+  }
+  .nav-btn.active { color: var(--cyan); }
+  .nav-btn svg { width: 24px; height: 24px; }
+
+  /* SCREENS */
+  .screen { display: none; padding: 16px 16px 90px; min-height: 100vh; }
+  .screen.active { display: block; }
+
+  /* HEADER */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .logo-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px; font-weight: 900;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px rgba(79,195,247,0.5);
+  }
+  .level-badge {
+    background: var(--blue-accent);
+    border: 1px solid var(--cyan);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: var(--cyan);
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* COIN DISPLAY */
+  .coin-display {
+    text-align: center;
+    margin: 10px 0 24px;
+  }
+  .coin-amount {
+    font-family: 'Orbitron', monospace;
+    font-size: 42px; font-weight: 900;
+    color: var(--white);
+    text-shadow: 0 0 30px rgba(79,195,247,0.3);
+    letter-spacing: 2px;
+  }
+  .coin-label {
+    font-size: 13px; color: #4a6a9a;
+    letter-spacing: 3px; margin-top: 4px;
+  }
+
+  /* TAP BUTTON */
+  .tap-area {
+    display: flex; justify-content: center; align-items: center;
+    margin: 10px 0 30px;
+  }
+  .tap-btn {
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #1a3a6e, #0a1628);
+    border: 3px solid var(--blue-accent);
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.08s, box-shadow 0.08s;
+    box-shadow: 0 0 40px rgba(21,101,192,0.4), 0 0 80px rgba(21,101,192,0.15), inset 0 0 30px rgba(79,195,247,0.05);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tap-btn:active {
+    transform: scale(0.93);
+    box-shadow: 0 0 20px rgba(79,195,247,0.5), inset 0 0 40px rgba(79,195,247,0.1);
+  }
+  .tap-btn-inner {
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #1565c0, #0a1628);
+    border: 2px solid rgba(79,195,247,0.3);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 6px;
+  }
+  .tap-x {
+    font-family: 'Orbitron', monospace;
+    font-size: 52px; font-weight: 900;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan);
+    line-height: 1;
+  }
+  .tap-hint {
+    font-size: 11px; color: #4a6a9a; letter-spacing: 2px;
+  }
+
+  /* Floating +1 animations */
+  .float-text {
+    position: fixed;
+    font-family: 'Orbitron', monospace;
+    font-size: 22px; font-weight: 900;
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan);
+    pointer-events: none;
+    animation: floatUp 0.9s ease-out forwards;
+    z-index: 999;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.7); }
+  }
+
+  /* ENERGY BAR */
+  .energy-section { margin-bottom: 20px; }
+  .energy-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: #4a6a9a; letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .energy-bar {
+    height: 6px; background: #0d2453; border-radius: 3px;
+    overflow: hidden;
+  }
+  .energy-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan-dark), var(--cyan));
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  /* STATS GRID */
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 20px; font-weight: 700;
+    color: var(--cyan);
+  }
+  .stat-label { font-size: 11px; color: #4a6a9a; letter-spacing: 1px; margin-top: 4px; }
+
+  /* DAILY REWARD */
+  .daily-card {
+    background: linear-gradient(135deg, #0d2453, #0a1f45);
+    border: 1px solid var(--blue-accent);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 16px;
+    position: relative; overflow: hidden;
+  }
+  .daily-card::before {
+    content: '';
+    position: absolute; top: -50%; right: -30%;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(79,195,247,0.08) 0%, transparent 70%);
+  }
+  .daily-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px; color: var(--cyan); letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .daily-desc { font-size: 13px; color: #8aadcc; margin-bottom: 14px; }
+  .claim-btn {
+    background: linear-gradient(135deg, var(--blue-accent), var(--cyan-dark));
+    border: none; border-radius: 10px;
+    padding: 10px 28px;
+    color: #fff; font-family: 'Orbitron', monospace;
+    font-size: 12px; letter-spacing: 2px;
+    cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+  }
+  .claim-btn:active { transform: scale(0.96); }
+  .claim-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* DAILY DAYS */
+  .day-row {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 6px; margin-top: 14px;
+  }
+  .day-dot {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 2px;
+    font-size: 9px; color: #4a6a9a;
+  }
+  .day-dot.claimed { background: var(--blue-accent); border-color: var(--cyan); color: var(--cyan); }
+  .day-dot.today { border-color: var(--gold); color: var(--gold); }
+  .day-dot .day-coins { font-family: 'Orbitron', monospace; font-size: 8px; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px; color: var(--cyan); letter-spacing: 3px;
+    margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--navy-light);
+  }
+
+  /* LEADERBOARD */
+  .rank-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+  .rank-item.me { border-color: var(--cyan); background: rgba(79,195,247,0.05); }
+  .rank-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; font-weight: 900;
+    min-width: 32px; text-align: center;
+  }
+  .rank-num.gold { color: var(--gold); }
+  .rank-num.silver { color: var(--silver); }
+  .rank-num.bronze { color: var(--bronze); }
+  .rank-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue-accent), var(--navy-mid));
+    border: 2px solid var(--navy-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 15px; font-weight: 700; color: var(--white); }
+  .rank-sub { font-size: 11px; color: #4a6a9a; letter-spacing: 1px; }
+  .rank-coins {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px; color: var(--cyan); font-weight: 700;
+  }
+
+  /* REFERRAL */
+  .ref-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    border-radius: 16px;
+    padding: 18px; margin-bottom: 14px;
+  }
+  .ref-title { font-family: 'Orbitron', monospace; font-size: 13px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 10px; }
+  .ref-link {
+    background: var(--navy);
+    border: 1px solid var(--blue-accent);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px; color: #8aadcc;
+    word-break: break-all;
+    margin-bottom: 12px;
+    font-family: monospace;
+  }
+  .copy-btn {
+    background: var(--blue-accent);
+    border: none; border-radius: 10px;
+    padding: 10px 24px;
+    color: #fff; font-family: 'Orbitron', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    cursor: pointer; transition: background 0.2s;
+    width: 100%;
+  }
+  .copy-btn:active { background: var(--cyan-dark); }
+
+  .ref-bonus-info {
+    background: rgba(21,101,192,0.15);
+    border: 1px solid rgba(79,195,247,0.2);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px; color: #8aadcc;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .ref-bonus-info span { color: var(--cyan); font-weight: 700; }
+
+  .friends-count {
+    text-align: center; padding: 14px;
+    font-family: 'Orbitron', monospace;
+    font-size: 28px; color: var(--cyan);
+  }
+  .friends-label { font-size: 11px; color: #4a6a9a; letter-spacing: 2px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: var(--blue-accent);
+    color: #fff; border-radius: 20px;
+    padding: 10px 24px;
+    font-family: 'Rajdhani', sans-serif; font-size: 14px; letter-spacing: 1px;
+    opacity: 0; transition: opacity 0.3s;
+    z-index: 9999; pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Pulse ring on tap */
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  .pulse-ring {
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    border: 2px solid var(--cyan);
+    animation: pulse-ring 0.6s ease-out forwards;
+    pointer-events: none;
+  }
+
+  /* ── WALLET ─────────────────────────────────────────────────── */
+  .wallet-hero {
+    background: linear-gradient(135deg, #0b1e3d, #071129);
+    border: 1px solid var(--blue-accent);
+    border-radius: 20px;
+    padding: 28px 20px;
+    text-align: center;
+    margin-bottom: 18px;
+    position: relative; overflow: hidden;
+  }
+  .wallet-hero::before {
+    content: '';
+    position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(0,152,234,0.12) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .ton-gem {
+    width: 80px; height: 80px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, #0098ea, #005cb2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px;
+    box-shadow: 0 0 40px rgba(0,152,234,0.4), 0 0 80px rgba(0,152,234,0.15);
+    position: relative; z-index: 1;
+  }
+  .wallet-hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px; font-weight: 900;
+    color: var(--white); letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .wallet-hero-sub {
+    font-size: 13px; color: #6a9abf; line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  /* Connect button */
+  .ton-connect-btn {
+    background: linear-gradient(135deg, #0098ea, #006bb3);
+    border: none; border-radius: 14px;
+    padding: 14px 32px;
+    color: #fff; font-family: 'Orbitron', monospace;
+    font-size: 13px; letter-spacing: 2px; font-weight: 700;
+    cursor: pointer; width: 100%;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 4px 20px rgba(0,152,234,0.3);
+  }
+  .ton-connect-btn:active { transform: scale(0.97); }
+  .ton-connect-btn.connected {
+    background: linear-gradient(135deg, #0d3b1f, #0a2d17);
+    border: 1px solid #2e7d32;
+    color: #69f0ae;
+  }
+  .ton-connect-btn.disconnecting {
+    background: linear-gradient(135deg, #3b0d0d, #2d0a0a);
+    border: 1px solid #c62828;
+    color: #ff5252;
+  }
+
+  /* Wallet info card */
+  .wallet-info-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .wallet-info-card.show { display: block; }
+  .wallet-info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(26,58,110,0.5);
+    font-size: 13px;
+  }
+  .wallet-info-row:last-child { border-bottom: none; }
+  .wallet-info-label { color: #4a6a9a; letter-spacing: 1px; }
+  .wallet-info-value {
+    color: var(--white); font-weight: 600;
+    font-family: 'Orbitron', monospace; font-size: 11px;
+    max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .wallet-info-value.green { color: #69f0ae; }
+  .wallet-info-value.ton-blue { color: #0098ea; }
+
+  /* TON balance card */
+  .ton-balance-card {
+    background: linear-gradient(135deg, #041729, #071e38);
+    border: 1px solid rgba(0,152,234,0.3);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+    display: none; text-align: center;
+  }
+  .ton-balance-card.show { display: block; }
+  .ton-balance-label { font-size: 11px; color: #4a6a9a; letter-spacing: 2px; margin-bottom: 8px; }
+  .ton-balance-amount {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px; font-weight: 900;
+    color: #0098ea;
+    text-shadow: 0 0 20px rgba(0,152,234,0.4);
+  }
+  .ton-balance-unit { font-size: 14px; color: #6a9abf; margin-top: 4px; }
+
+  /* Perks section */
+  .perk-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .perk-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .perk-icon.blue { background: rgba(0,152,234,0.15); border: 1px solid rgba(0,152,234,0.3); }
+  .perk-icon.gold { background: rgba(255,213,79,0.1); border: 1px solid rgba(255,213,79,0.3); }
+  .perk-icon.purple { background: rgba(149,117,205,0.15); border: 1px solid rgba(149,117,205,0.3); }
+  .perk-info { flex: 1; }
+  .perk-title { font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 3px; }
+  .perk-desc { font-size: 12px; color: #4a6a9a; }
+  .perk-badge {
+    background: var(--blue-accent);
+    border-radius: 8px; padding: 3px 10px;
+    font-size: 11px; color: var(--cyan);
+    font-family: 'Orbitron', monospace; letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .perk-badge.locked { background: #111d35; color: #4a6a9a; border: 1px solid #1a3a6e; }
+
+  /* wallet status dot */
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
+  }
+  .status-dot.connected { background: #69f0ae; box-shadow: 0 0 6px #69f0ae; }
+  .status-dot.disconnected { background: #4a6a9a; }
+
+  /* Wallet connect modal */
+  .wallet-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 1000;
+    align-items: flex-end; justify-content: center;
+  }
+  .wallet-modal.show { display: flex; }
+  .wallet-modal-inner {
+    background: #0c1b35;
+    border: 1px solid var(--navy-light);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.3s ease-out;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--navy-light); border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px; color: var(--cyan); letter-spacing: 2px;
+    margin-bottom: 18px; text-align: center;
+  }
+  .wallet-option {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    border-radius: 14px; padding: 14px 16px;
+    margin-bottom: 10px; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .wallet-option:active { border-color: #0098ea; }
+  .wallet-option-logo {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+  }
+  .wallet-option-name { font-size: 15px; font-weight: 700; }
+  .wallet-option-sub { font-size: 12px; color: #4a6a9a; margin-top: 2px; }
+  .wallet-option-arrow { margin-left: auto; color: #4a6a9a; font-size: 18px; }
+  .modal-cancel {
+    width: 100%; background: none; border: 1px solid var(--navy-light);
+    border-radius: 12px; padding: 12px;
+    color: #4a6a9a; font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; letter-spacing: 2px; cursor: pointer; margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SCREENS -->
+
+<!-- HOME / TAP -->
+<div class="screen active" id="screen-home">
+  <div class="header">
+    <div class="logo-text">LEAGUE<span style="color:#1976d2">X</span></div>
+    <div class="level-badge" id="level-badge">LVL 1</div>
+  </div>
+
+  <div class="coin-display">
+    <div class="coin-amount" id="coin-count">0</div>
+    <div class="coin-label">⚡ LXP POINTS</div>
+  </div>
+
+  <div class="energy-section">
+    <div class="energy-label">
+      <span>⚡ ENERGY</span>
+      <span id="energy-label">500 / 500</span>
+    </div>
+    <div class="energy-bar">
+      <div class="energy-fill" id="energy-fill" style="width:100%"></div>
+    </div>
+  </div>
+
+  <div class="tap-area">
+    <div style="position:relative">
+      <div class="tap-btn" id="tap-btn">
+        <div class="tap-btn-inner">
+          <div class="tap-x">✕</div>
+          <div class="tap-hint">TAP TO EARN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">TOTAL EARNED</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-taps">0</div>
+      <div class="stat-label">TOTAL TAPS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-streak">0</div>
+      <div class="stat-label">DAY STREAK</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-refs">0</div>
+      <div class="stat-label">REFERRALS</div>
+    </div>
+  </div>
+</div>
+
+<!-- DAILY -->
+<div class="screen" id="screen-daily">
+  <div class="header">
+    <div class="logo-text">LEAGUE<span style="color:#1976d2">X</span></div>
+    <div style="font-size:12px;color:#4a6a9a;letter-spacing:2px">DAILY REWARDS</div>
+  </div>
+
+  <div class="daily-card">
+    <div class="daily-title">🏆 DAILY CHECK-IN</div>
+    <div class="daily-desc" id="daily-desc">Claim your daily LXP reward and keep your streak alive!</div>
+    <button class="claim-btn" id="claim-btn" onclick="claimDaily()">CLAIM REWARD</button>
+
+    <div class="day-row" id="day-row"></div>
+  </div>
+
+  <div class="section-title">STREAK BONUSES</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="streak-val">0</div>
+      <div class="stat-label">CURRENT STREAK</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="streak-best">0</div>
+      <div class="stat-label">BEST STREAK</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="daily-earned">0</div>
+      <div class="stat-label">TODAY'S REWARD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="total-daily">0</div>
+      <div class="stat-label">TOTAL DAILY</div>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="screen" id="screen-leaderboard">
+  <div class="header">
+    <div class="logo-text">LEAGUE<span style="color:#1976d2">X</span></div>
+    <div style="font-size:12px;color:#4a6a9a;letter-spacing:2px">RANKINGS</div>
+  </div>
+
+  <div class="section-title">🏅 GLOBAL TOP 10</div>
+  <div id="leaderboard-list"></div>
+</div>
+
+<!-- REFERRALS -->
+<div class="screen" id="screen-referral">
+  <div class="header">
+    <div class="logo-text">LEAGUE<span style="color:#1976d2">X</span></div>
+    <div style="font-size:12px;color:#4a6a9a;letter-spacing:2px">INVITE & EARN</div>
+  </div>
+
+  <div class="ref-card">
+    <div class="ref-title">🔗 YOUR INVITE LINK</div>
+    <div class="ref-link" id="ref-link-display">Loading...</div>
+    <button class="copy-btn" onclick="copyRef()">📋 COPY INVITE LINK</button>
+  </div>
+
+  <div class="ref-bonus-info">
+    🎁 Earn <span>+500 LXP</span> for each friend who joins via your link!<br>
+    Your friend earns <span>+250 LXP</span> bonus on signup!<br>
+    Higher referrals = higher league tier! 🏆
+  </div>
+
+  <div class="stat-card" style="margin-bottom:14px;text-align:center;">
+    <div class="stat-value" id="ref-total-earned">0</div>
+    <div class="stat-label">LXP EARNED FROM REFERRALS</div>
+  </div>
+
+  <div class="ref-card">
+    <div class="ref-title">👥 MY FRIENDS (<span id="ref-count-title">0</span>)</div>
+    <div id="friends-list" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- WALLET -->
+<div class="screen" id="screen-wallet">
+  <div class="header">
+    <div class="logo-text">LEAGUE<span style="color:#1976d2">X</span></div>
+    <div style="font-size:12px;color:#4a6a9a;letter-spacing:2px">TON WALLET</div>
+  </div>
+
+  <!-- Hero -->
+  <div class="wallet-hero">
+    <div class="ton-gem">💎</div>
+    <div class="wallet-hero-title">TON CONNECT</div>
+    <div class="wallet-hero-sub" id="wallet-hero-sub">
+      Link your TON wallet to unlock exclusive perks,<br>verify your identity, and earn bonus LXP!
+    </div>
+
+    <!-- Status -->
+    <div style="margin-bottom:14px;font-size:13px;" id="wallet-status-text">
+      <span class="status-dot disconnected" id="status-dot"></span>
+      <span id="status-label" style="color:#4a6a9a;letter-spacing:1px">NOT CONNECTED</span>
+    </div>
+
+    <button class="ton-connect-btn" id="wallet-main-btn" onclick="handleWalletBtn()">
+      <svg width="20" height="20" viewBox="0 0 56 56" fill="none">
+        <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="#0098EA"/>
+        <path d="M37.5 15H18.5C15.4 15 13.5 18.4 15.2 21L24.5 36.2C26.2 38.8 30 38.8 31.7 36.2L41 21C42.5 18.4 40.6 15 37.5 15Z" fill="white"/>
+      </svg>
+      CONNECT WALLET
+    </button>
+  </div>
+
+  <!-- Wallet info (shown after connect) -->
+  <div class="wallet-info-card" id="wallet-info-card">
+    <div class="section-title" style="margin-bottom:12px">📋 WALLET DETAILS</div>
+    <div class="wallet-info-row">
+      <span class="wallet-info-label">STATUS</span>
+      <span class="wallet-info-value green">● CONNECTED</span>
+    </div>
+    <div class="wallet-info-row">
+      <span class="wallet-info-label">ADDRESS</span>
+      <span class="wallet-info-value ton-blue" id="wallet-address-display">—</span>
+    </div>
+    <div class="wallet-info-row">
+      <span class="wallet-info-label">NETWORK</span>
+      <span class="wallet-info-value" id="wallet-network">Mainnet</span>
+    </div>
+    <div class="wallet-info-row">
+      <span class="wallet-info-label">WALLET APP</span>
+      <span class="wallet-info-value" id="wallet-app-name">—</span>
+    </div>
+  </div>
+
+  <!-- TON balance -->
+  <div class="ton-balance-card" id="ton-balance-card">
+    <div class="ton-balance-label">TON BALANCE</div>
+    <div class="ton-balance-amount" id="ton-balance-val">—</div>
+    <div class="ton-balance-unit">TON</div>
+  </div>
+
+  <!-- Perks -->
+  <div class="section-title">🔓 WALLET PERKS</div>
+
+  <div class="perk-card">
+    <div class="perk-icon blue">💎</div>
+    <div class="perk-info">
+      <div class="perk-title">Wallet Bonus</div>
+      <div class="perk-desc">+1000 LXP one-time reward for connecting</div>
+    </div>
+    <div class="perk-badge" id="perk-wallet-bonus">CLAIM</div>
+  </div>
+
+  <div class="perk-card">
+    <div class="perk-icon gold">⚡</div>
+    <div class="perk-info">
+      <div class="perk-title">Double Energy</div>
+      <div class="perk-desc">Max energy raised to 1000 for connected wallets</div>
+    </div>
+    <div class="perk-badge" id="perk-energy">LOCKED</div>
+  </div>
+
+  <div class="perk-card">
+    <div class="perk-icon purple">🏆</div>
+    <div class="perk-info">
+      <div class="perk-title">Verified Badge</div>
+      <div class="perk-desc">Stand out on the leaderboard with ✅ tag</div>
+    </div>
+    <div class="perk-badge" id="perk-badge">LOCKED</div>
+  </div>
+
+  <div class="perk-card">
+    <div class="perk-icon blue">🎁</div>
+    <div class="perk-info">
+      <div class="perk-title">Daily Boost</div>
+      <div class="perk-desc">+50% LXP on daily check-in rewards</div>
+    </div>
+    <div class="perk-badge" id="perk-daily">LOCKED</div>
+  </div>
+</div>
+
+<!-- Wallet Select Modal -->
+<div class="wallet-modal" id="wallet-modal" onclick="closeModal(event)">
+  <div class="wallet-modal-inner">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ SELECT WALLET</div>
+
+    <div class="wallet-option" onclick="connectWithWallet('Tonkeeper')">
+      <div class="wallet-option-logo" style="background:rgba(0,152,234,0.1);border:1px solid rgba(0,152,234,0.3)">💎</div>
+      <div>
+        <div class="wallet-option-name">Tonkeeper</div>
+        <div class="wallet-option-sub">Most popular TON wallet</div>
+      </div>
+      <div class="wallet-option-arrow">›</div>
+    </div>
+
+    <div class="wallet-option" onclick="connectWithWallet('MyTonWallet')">
+      <div class="wallet-option-logo" style="background:rgba(255,213,79,0.1);border:1px solid rgba(255,213,79,0.3)">🔐</div>
+      <div>
+        <div class="wallet-option-name">MyTonWallet</div>
+        <div class="wallet-option-sub">Official TON Foundation wallet</div>
+      </div>
+      <div class="wallet-option-arrow">›</div>
+    </div>
+
+    <div class="wallet-option" onclick="connectWithWallet('TON Wallet')">
+      <div class="wallet-option-logo" style="background:rgba(149,117,205,0.1);border:1px solid rgba(149,117,205,0.3)">🌐</div>
+      <div>
+        <div class="wallet-option-name">TON Wallet</div>
+        <div class="wallet-option-sub">Built-in Telegram wallet</div>
+      </div>
+      <div class="wallet-option-arrow">›</div>
+    </div>
+
+    <button class="modal-cancel" onclick="document.getElementById('wallet-modal').classList.remove('show')">
+      CANCEL
+    </button>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <div class="nav-btn active" id="nav-home" onclick="switchScreen('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    HOME
+  </div>
+  <div class="nav-btn" id="nav-daily" onclick="switchScreen('daily')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    DAILY
+  </div>
+  <div class="nav-btn" id="nav-leaderboard" onclick="switchScreen('leaderboard')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+      <polyline points="17 6 23 6 23 12"/>
+    </svg>
+    RANKS
+  </div>
+  <div class="nav-btn" id="nav-referral" onclick="switchScreen('referral')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+    INVITE
+  </div>
+  <div class="nav-btn" id="nav-wallet" onclick="switchScreen('wallet')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="1" y="4" width="22" height="16" rx="2"/>
+      <path d="M1 10h22"/>
+      <circle cx="17" cy="15" r="1.5" fill="currentColor" stroke="none"/>
+    </svg>
+    WALLET
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const userId = tg?.initDataUnsafe?.user?.id || 'demo_user_123';
+const userName = tg?.initDataUnsafe?.user?.first_name || 'Commander';
+const botUsername = 'LeagueXBot'; // CHANGE THIS
+
+const STORAGE_KEY = `leaguex_${userId}`;
+const COIN_PER_TAP = 1;
+const MAX_ENERGY = 500;
+const ENERGY_REGEN_PER_SEC = 1;
+
+const DAILY_REWARDS = [50, 75, 100, 150, 200, 300, 500, 750, 1000, 2000];
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    coins: 0,
+    totalCoins: 0,
+    totalTaps: 0,
+    energy: MAX_ENERGY,
+    lastEnergyTime: Date.now(),
+    streak: 0,
+    bestStreak: 0,
+    lastClaimDate: null,
+    daysClaimed: [],
+    totalDailyEarned: 0,
+    referrals: [],
+    refEarned: 0,
+    refBonus: 0,
+    level: 1,
+    walletAddress: null,
+    walletApp: null,
+    walletBonusClaimed: false,
+  };
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+
+// Apply referral bonus if new user referred
+const urlParams = new URLSearchParams(window.location.search);
+const refId = urlParams.get('ref');
+if (refId && refId !== String(userId) && !state.refBonus) {
+  state.coins += 250;
+  state.totalCoins += 250;
+  state.refBonus = 1;
+  saveState();
+  showToast('🎁 +250 LXP Welcome Bonus!');
+}
+
+// ── Energy Regen ───────────────────────────────────────────────────────
+function regenEnergy() {
+  const now = Date.now();
+  const elapsed = (now - state.lastEnergyTime) / 1000;
+  const regen = Math.floor(elapsed * ENERGY_REGEN_PER_SEC);
+  if (regen > 0) {
+    state.energy = Math.min(MAX_ENERGY, state.energy + regen);
+    state.lastEnergyTime = now;
+    saveState();
+  }
+}
+regenEnergy();
+setInterval(() => {
+  if (state.energy < MAX_ENERGY) {
+    state.energy = Math.min(MAX_ENERGY, state.energy + ENERGY_REGEN_PER_SEC);
+    state.lastEnergyTime = Date.now();
+    updateEnergyUI();
+  }
+}, 1000);
+
+// ── Level ──────────────────────────────────────────────────────────────
+function computeLevel(coins) {
+  const thresholds = [0,1000,5000,15000,50000,150000,500000,2000000];
+  let lvl = 1;
+  for (let i = 1; i < thresholds.length; i++) {
+    if (coins >= thresholds[i]) lvl = i + 1; else break;
+  }
+  return lvl;
+}
+
+// ── UI Updates ─────────────────────────────────────────────────────────
+function updateUI() {
+  state.level = computeLevel(state.totalCoins);
+  document.getElementById('coin-count').textContent = state.coins.toLocaleString();
+  document.getElementById('level-badge').textContent = 'LVL ' + state.level;
+  document.getElementById('stat-total').textContent = fmtNum(state.totalCoins);
+  document.getElementById('stat-taps').textContent = fmtNum(state.totalTaps);
+  document.getElementById('stat-streak').textContent = state.streak;
+  document.getElementById('stat-refs').textContent = state.referrals.length;
+  updateEnergyUI();
+}
+
+function updateEnergyUI() {
+  const pct = (state.energy / MAX_ENERGY * 100) + '%';
+  document.getElementById('energy-fill').style.width = pct;
+  document.getElementById('energy-label').textContent = state.energy + ' / ' + MAX_ENERGY;
+}
+
+function fmtNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+
+// ── Tap ────────────────────────────────────────────────────────────────
+const tapBtn = document.getElementById('tap-btn');
+tapBtn.addEventListener('click', function(e) {
+  if (state.energy <= 0) { showToast('⚡ No energy! Wait for regen.'); return; }
+  state.coins += COIN_PER_TAP;
+  state.totalCoins += COIN_PER_TAP;
+  state.totalTaps++;
+  state.energy = Math.max(0, state.energy - 1);
+  saveState();
+  updateUI();
+
+  // Float text
+  const fl = document.createElement('div');
+  fl.className = 'float-text';
+  fl.textContent = '+1';
+  const rect = tapBtn.getBoundingClientRect();
+  fl.style.left = (rect.left + rect.width/2 - 15 + (Math.random()-0.5)*60) + 'px';
+  fl.style.top = (rect.top + 40) + 'px';
+  document.body.appendChild(fl);
+  setTimeout(() => fl.remove(), 900);
+
+  // Pulse ring
+  const ring = document.createElement('div');
+  ring.className = 'pulse-ring';
+  ring.style.position = 'absolute';
+  ring.style.top = '0'; ring.style.left = '0';
+  this.appendChild(ring);
+  setTimeout(() => ring.remove(), 600);
+});
+
+// ── Daily Rewards ──────────────────────────────────────────────────────
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function buildDayRow() {
+  const row = document.getElementById('day-row');
+  row.innerHTML = '';
+  const today = todayStr();
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    d.className = 'day-dot';
+    const claimed = state.daysClaimed.includes(i+1);
+    const isToday = (state.streak === i || state.streak === i+1) && !claimed;
+    if (claimed) d.classList.add('claimed');
+    if (isToday && !claimed && state.streak === i) d.classList.add('today');
+    d.innerHTML = `<div>D${i+1}</div><div class="day-coins">${fmtNum(DAILY_REWARDS[i])}</div>`;
+    row.appendChild(d);
+  }
+}
+
+function updateDailyUI() {
+  const today = todayStr();
+  const alreadyClaimed = state.lastClaimDate === today;
+  const btn = document.getElementById('claim-btn');
+  const nextReward = DAILY_REWARDS[Math.min(state.streak, DAILY_REWARDS.length - 1)];
+
+  if (alreadyClaimed) {
+    btn.textContent = '✅ CLAIMED TODAY';
+    btn.disabled = true;
+    document.getElementById('daily-desc').textContent = 'Come back tomorrow to continue your streak!';
+  } else {
+    btn.textContent = `CLAIM +${nextReward} LXP`;
+    btn.disabled = false;
+    document.getElementById('daily-desc').textContent = `Day ${state.streak + 1} reward ready to claim!`;
+  }
+
+  document.getElementById('streak-val').textContent = state.streak;
+  document.getElementById('streak-best').textContent = state.bestStreak;
+  document.getElementById('daily-earned').textContent = alreadyClaimed ? fmtNum(DAILY_REWARDS[Math.max(0,state.streak-1)]) : '-';
+  document.getElementById('total-daily').textContent = fmtNum(state.totalDailyEarned);
+  buildDayRow();
+}
+
+function claimDaily() {
+  const today = todayStr();
+  if (state.lastClaimDate === today) return;
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  if (state.lastClaimDate !== yesterday) state.streak = 0; // streak broken
+
+  const reward = DAILY_REWARDS[Math.min(state.streak, DAILY_REWARDS.length - 1)];
+  state.coins += reward;
+  state.totalCoins += reward;
+  state.totalDailyEarned += reward;
+  state.streak++;
+  if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+  state.daysClaimed.push(state.streak);
+  state.lastClaimDate = today;
+  saveState();
+  updateUI();
+  updateDailyUI();
+  showToast(`🏆 +${reward} LXP Claimed!`);
+}
+
+// ── Leaderboard ────────────────────────────────────────────────────────
+function buildLeaderboard() {
+  const fakeUsers = [
+    { name: 'AlphaCommander', coins: 985000, emoji: '🦅' },
+    { name: 'NeonBladeX', coins: 742000, emoji: '⚡' },
+    { name: 'ShadowLeague', coins: 631000, emoji: '🌑' },
+    { name: 'CyberStrike99', coins: 520000, emoji: '🔥' },
+    { name: 'VortexKing', coins: 419000, emoji: '🌪️' },
+    { name: 'StarForgeX', coins: 315000, emoji: '⭐' },
+    { name: 'IronGhost', coins: 248000, emoji: '👻' },
+    { name: 'QuantumRift', coins: 187000, emoji: '⚗️' },
+    { name: 'NightCrawler', coins: 120000, emoji: '🕷️' },
+    { name: 'VoidWalker', coins: 89000, emoji: '🌀' },
+  ];
+
+  // Insert real user
+  const userEntry = { name: userName + ' (You)', coins: state.totalCoins, emoji: '🔵', isMe: true };
+  const list = [...fakeUsers, userEntry].sort((a,b) => b.coins - a.coins);
+
+  const el = document.getElementById('leaderboard-list');
+  el.innerHTML = '';
+  list.forEach((u, i) => {
+    const numClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+    el.innerHTML += `
+    <div class="rank-item ${u.isMe ? 'me' : ''}">
+      <div class="rank-num ${numClass}">${medal}</div>
+      <div class="rank-avatar">${u.emoji}</div>
+      <div class="rank-info">
+        <div class="rank-name">${u.name}</div>
+        <div class="rank-sub">LEAGUE ${computeLevel(u.coins) < 4 ? 'BRONZE' : computeLevel(u.coins) < 7 ? 'GOLD' : 'PLATINUM'}</div>
+      </div>
+      <div class="rank-coins">${fmtNum(u.coins)}</div>
+    </div>`;
+  });
+}
+
+// ── Referral ───────────────────────────────────────────────────────────
+function buildReferral() {
+  const link = `https://t.me/${botUsername}?start=ref_${userId}`;
+  document.getElementById('ref-link-display').textContent = link;
+  document.getElementById('ref-count-title').textContent = state.referrals.length;
+  document.getElementById('ref-total-earned').textContent = fmtNum(state.refEarned);
+
+  const fl = document.getElementById('friends-list');
+  if (state.referrals.length === 0) {
+    fl.innerHTML = '<div style="color:#4a6a9a;font-size:13px;text-align:center;padding:14px;">No friends yet. Share your link! 🔗</div>';
+  } else {
+    fl.innerHTML = state.referrals.map((r,i) => `
+      <div class="rank-item" style="margin-bottom:8px">
+        <div class="rank-num" style="color:var(--cyan)">#${i+1}</div>
+        <div class="rank-avatar">👤</div>
+        <div class="rank-info"><div class="rank-name">${r.name}</div><div class="rank-sub">Joined via your link</div></div>
+        <div class="rank-coins">+500</div>
+      </div>`).join('');
+  }
+}
+
+function copyRef() {
+  const link = `https://t.me/${botUsername}?start=ref_${userId}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(() => showToast('🔗 Link copied!'));
+  } else {
+    const el = document.createElement('textarea');
+    el.value = link; document.body.appendChild(el);
+    el.select(); document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('🔗 Link copied!');
+  }
+
+  // Optionally open share dialog
+  if (tg) {
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join me on LeagueX and earn LXP points! 🏆')}`);
+  }
+}
+
+// ── Screen Switch ──────────────────────────────────────────────────────
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+
+  if (name === 'daily') updateDailyUI();
+  if (name === 'leaderboard') buildLeaderboard();
+  if (name === 'referral') buildReferral();
+  if (name === 'wallet') updateWalletUI();
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── TON WALLET ──────────────────────────────────────────────────────────
+let tonConnectUI = null;
+
+// Initialize TonConnect with your manifest URL
+function initTonConnect() {
+  try {
+    // You need to host a tonconnect-manifest.json at your domain
+    // See: https://docs.ton.org/develop/dapps/ton-connect/manifest
+    tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://your-domain.com/tonconnect-manifest.json', // ← UPDATE THIS
+      buttonRootId: null // we manage our own button
+    });
+
+    // Listen for wallet status changes
+    tonConnectUI.onStatusChange(wallet => {
+      if (wallet) {
+        const addr = wallet.account.address;
+        const friendly = formatTonAddress(addr);
+        state.walletAddress = friendly;
+        state.walletApp = wallet.device?.appName || 'Unknown';
+        saveState();
+        onWalletConnected(friendly, wallet.device?.appName);
+      } else {
+        state.walletAddress = null;
+        state.walletApp = null;
+        state.walletBonusClaimed = false; // reset so bonus is fresh if reconnected
+        saveState();
+        onWalletDisconnected();
+      }
+    });
+
+    // Restore previous connection
+    if (state.walletAddress) {
+      onWalletConnected(state.walletAddress, state.walletApp);
+    }
+  } catch(e) {
+    console.warn('TonConnect init failed (no SDK?):', e);
+  }
+}
+
+function formatTonAddress(raw) {
+  if (!raw) return '—';
+  // Show first 6 ... last 4 chars
+  if (raw.length > 12) return raw.slice(0, 6) + '…' + raw.slice(-4);
+  return raw;
+}
+
+function handleWalletBtn() {
+  if (state.walletAddress) {
+    // Offer disconnect
+    disconnectWallet();
+  } else {
+    // Show wallet picker modal OR open TonConnect
+    if (tonConnectUI) {
+      tonConnectUI.openModal();
+    } else {
+      // Fallback: show our custom modal (demo mode)
+      document.getElementById('wallet-modal').classList.add('show');
+    }
+  }
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('wallet-modal')) {
+    document.getElementById('wallet-modal').classList.remove('show');
+  }
+}
+
+// Called when real TonConnect connects OR from demo modal
+function connectWithWallet(walletName) {
+  document.getElementById('wallet-modal').classList.remove('show');
+
+  if (tonConnectUI) {
+    // Let TonConnect handle it — it will call onStatusChange
+    return;
+  }
+
+  // ── DEMO MODE (no real SDK) ───────────────────────────────────────────
+  // Simulate a connection for testing UI
+  const demoAddr = 'EQA3...demo' + Math.random().toString(36).slice(2,6).toUpperCase();
+  state.walletAddress = demoAddr;
+  state.walletApp = walletName;
+  saveState();
+  onWalletConnected(demoAddr, walletName);
+  showToast('💎 Demo wallet connected!');
+}
+
+function disconnectWallet() {
+  if (tonConnectUI) {
+    tonConnectUI.disconnect();
+  } else {
+    // Demo mode disconnect
+    state.walletAddress = null;
+    state.walletApp = null;
+    saveState();
+    onWalletDisconnected();
+    showToast('Wallet disconnected');
+  }
+}
+
+function onWalletConnected(address, appName) {
+  // Update main button
+  const btn = document.getElementById('wallet-main-btn');
+  btn.className = 'ton-connect-btn connected';
+  btn.innerHTML = `<span style="font-size:18px">✅</span> CONNECTED · ${address}`;
+
+  // Status dot
+  document.getElementById('status-dot').className = 'status-dot connected';
+  document.getElementById('status-label').textContent = 'CONNECTED';
+  document.getElementById('status-label').style.color = '#69f0ae';
+
+  // Info card
+  document.getElementById('wallet-info-card').classList.add('show');
+  document.getElementById('wallet-address-display').textContent = address;
+  document.getElementById('wallet-app-name').textContent = appName || '—';
+  document.getElementById('wallet-network').textContent = 'TON Mainnet';
+
+  // Balance card
+  document.getElementById('ton-balance-card').classList.add('show');
+  document.getElementById('ton-balance-val').textContent = '—';
+  fetchTonBalance(state.walletAddress);
+
+  // Hero sub
+  document.getElementById('wallet-hero-sub').textContent = 'Wallet connected! Your perks are active.';
+
+  // Unlock perks
+  updatePerkUI(true);
+
+  // Give one-time bonus
+  if (!state.walletBonusClaimed) {
+    state.walletBonusClaimed = true;
+    state.coins += 1000;
+    state.totalCoins += 1000;
+    saveState();
+    updateUI();
+    showToast('💎 +1000 LXP Wallet Bonus!');
+  }
+}
+
+function onWalletDisconnected() {
+  const btn = document.getElementById('wallet-main-btn');
+  btn.className = 'ton-connect-btn';
+  btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 56 56" fill="none">
+    <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="#0098EA"/>
+    <path d="M37.5 15H18.5C15.4 15 13.5 18.4 15.2 21L24.5 36.2C26.2 38.8 30 38.8 31.7 36.2L41 21C42.5 18.4 40.6 15 37.5 15Z" fill="white"/>
+  </svg> CONNECT WALLET`;
+
+  document.getElementById('status-dot').className = 'status-dot disconnected';
+  document.getElementById('status-label').textContent = 'NOT CONNECTED';
+  document.getElementById('status-label').style.color = '#4a6a9a';
+  document.getElementById('wallet-info-card').classList.remove('show');
+  document.getElementById('ton-balance-card').classList.remove('show');
+  document.getElementById('wallet-hero-sub').textContent =
+    'Link your TON wallet to unlock exclusive perks,\nverify your identity, and earn bonus LXP!';
+
+  updatePerkUI(false);
+}
+
+async function fetchTonBalance(address) {
+  try {
+    // Using public TON API — replace with your own node if needed
+    const res = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${address}`);
+    const data = await res.json();
+    if (data.ok) {
+      const ton = (parseInt(data.result) / 1e9).toFixed(2);
+      document.getElementById('ton-balance-val').textContent = ton;
+    }
+  } catch(e) {
+    document.getElementById('ton-balance-val').textContent = '—';
+  }
+}
+
+function updatePerkUI(connected) {
+  const perks = ['perk-energy', 'perk-badge', 'perk-daily'];
+  const claimEl = document.getElementById('perk-wallet-bonus');
+  if (connected) {
+    claimEl.textContent = state.walletBonusClaimed ? '✅ CLAIMED' : 'CLAIM';
+    claimEl.className = 'perk-badge';
+    perks.forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = 'ACTIVE';
+      el.className = 'perk-badge';
+    });
+  } else {
+    claimEl.textContent = 'CLAIM';
+    claimEl.className = 'perk-badge locked';
+    perks.forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = 'LOCKED';
+      el.className = 'perk-badge locked';
+    });
+  }
+}
+
+function updateWalletUI() {
+  if (state.walletAddress) {
+    onWalletConnected(state.walletAddress, state.walletApp);
+  } else {
+    onWalletDisconnected();
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+updateUI();
+updateDailyUI();
+buildLeaderboard();
+buildReferral();
+initTonConnect();
+</script>
+</body>
+</html>

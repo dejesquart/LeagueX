@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a1628;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d2453;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="xGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4fc3f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0288d1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1565c0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d47a1;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="200" cy="200" r="195" fill="url(#bgGrad)" />
+
+  <!-- Outer ring -->
+  <circle cx="200" cy="200" r="185" fill="none" stroke="#1a3a6e" stroke-width="3" />
+
+  <!-- Decorative ring segments -->
+  <circle cx="200" cy="200" r="170" fill="none" stroke="#0d3b8a" stroke-width="1.5" stroke-dasharray="12 6" />
+
+  <!-- Hexagonal background shape -->
+  <polygon points="200,45 340,122 340,278 200,355 60,278 60,122" fill="none" stroke="#1565c0" stroke-width="2" opacity="0.5" />
+
+  <!-- Inner glow circle -->
+  <circle cx="200" cy="200" r="130" fill="#0b1e40" opacity="0.8" />
+
+  <!-- X shape - left diagonal bar -->
+  <rect x="88" y="168" width="224" height="52" rx="10"
+        transform="rotate(45 200 200)"
+        fill="url(#xGrad)" filter="url(#glow)" />
+
+  <!-- X shape - right diagonal bar -->
+  <rect x="88" y="168" width="224" height="52" rx="10"
+        transform="rotate(-45 200 200)"
+        fill="url(#xGrad)" filter="url(#glow)" />
+
+  <!-- Center diamond accent -->
+  <polygon points="200,183 217,200 200,217 183,200" fill="#ffffff" opacity="0.95" filter="url(#softglow)" />
+
+  <!-- League laurel left -->
+  <path d="M90,200 Q80,175 95,155 Q105,165 100,185 Z" fill="#1976d2" opacity="0.7"/>
+  <path d="M85,200 Q70,180 80,158 Q92,165 88,188 Z" fill="#1565c0" opacity="0.5"/>
+
+  <!-- League laurel right -->
+  <path d="M310,200 Q320,175 305,155 Q295,165 300,185 Z" fill="#1976d2" opacity="0.7"/>
+  <path d="M315,200 Q330,180 320,158 Q308,165 312,188 Z" fill="#1565c0" opacity="0.5"/>
+
+  <!-- LEAGUEX text -->
+  <text x="200" y="340" font-family="'Arial Black', 'Impact', sans-serif" font-size="36" font-weight="900"
+        fill="#4fc3f7" text-anchor="middle" letter-spacing="8" filter="url(#glow)">LEAGUEX</text>
+
+  <!-- Subtitle dots -->
+  <circle cx="150" cy="360" r="3" fill="#1976d2"/>
+  <circle cx="200" cy="360" r="3" fill="#4fc3f7"/>
+  <circle cx="250" cy="360" r="3" fill="#1976d2"/>
+
+  <!-- Corner star accents -->
+  <polygon points="200,22 204,32 215,32 206,39 209,50 200,43 191,50 194,39 185,32 196,32" fill="#4fc3f7" opacity="0.6" filter="url(#glow)"/>
+</svg>
