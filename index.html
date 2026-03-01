@@ -1377,12 +1377,166 @@ function updateWalletUI() {
   }
 }
 
+// ── BACKEND API ────────────────────────────────────────────────────────
+const API_URL = 'https://web-production-b3ef1.up.railway.app';
+const INIT_DATA = tg?.initData || 'dev_mode';
+
+async function apiCall(path, method = 'GET', body = null) {
+  try {
+    const opts = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-init-data': INIT_DATA
+      }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API_URL + path, opts);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) {
+    console.warn('API error:', e);
+    return null;
+  }
+}
+
+// Load user data from server on startup
+async function loadFromServer() {
+  const data = await apiCall('/user/me');
+  if (data) {
+    state.coins        = data.coins;
+    state.totalCoins   = data.total_coins;
+    state.totalTaps    = data.total_taps;
+    state.energy       = data.energy;
+    state.streak       = data.streak;
+    state.bestStreak   = data.best_streak;
+    state.lastClaimDate = data.last_claim;
+    state.walletAddress = data.wallet_address;
+    state.walletBonusClaimed = data.wallet_bonus_claimed;
+    state.refEarned    = data.ref_earned;
+    saveState();
+    updateUI();
+    showToast('✅ Progress loaded!');
+  }
+}
+
+// Sync state to server (called every 10 taps & on page actions)
+let tapBuffer = 0;
+async function syncToServer() {
+  await apiCall('/user/sync', 'POST', {
+    coins:       state.coins,
+    total_coins: state.totalCoins,
+    total_taps:  state.totalTaps,
+    energy:      state.energy,
+    streak:      state.streak,
+    best_streak: state.bestStreak,
+    last_claim:  state.lastClaimDate,
+    wallet_address: state.walletAddress || null
+  });
+}
+
+// Send taps to server in batches
+async function flushTaps() {
+  if (tapBuffer <= 0) return;
+  const batch = tapBuffer;
+  tapBuffer = 0;
+  await apiCall('/user/tap', 'POST', { taps: batch });
+}
+
+// Flush taps every 5 seconds
+setInterval(flushTaps, 5000);
+
+// Load leaderboard from server
+async function loadLeaderboardFromServer() {
+  const data = await apiCall('/leaderboard?limit=50');
+  if (!data) { buildLeaderboard(); return; } // fallback to local
+
+  const el = document.getElementById('leaderboard-list');
+  const medals = ['🥇','🥈','🥉'];
+  el.innerHTML = data.leaderboard.map((u, i) => {
+    const medal = medals[i] || `#${u.rank}`;
+    const numClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const isMe = u.telegram_id === String(userId);
+    const verified = u.wallet_verified ? ' ✅' : '';
+    const tier = u.level < 4 ? 'BRONZE' : u.level < 7 ? 'GOLD' : 'PLATINUM';
+    return `
+    <div class="rank-item ${isMe ? 'me' : ''}">
+      <div class="rank-num ${numClass}">${medal}</div>
+      <div class="rank-avatar">⚡</div>
+      <div class="rank-info">
+        <div class="rank-name">${u.name}${verified}${isMe ? ' (You)' : ''}</div>
+        <div class="rank-sub">LEAGUE ${tier}</div>
+      </div>
+      <div class="rank-coins">${fmtNum(u.coins)}</div>
+    </div>`;
+  }).join('');
+}
+
+// Claim daily from server
+async function claimDailyFromServer() {
+  const res = await apiCall('/user/daily', 'POST');
+  if (!res) {
+    showToast('❌ Already claimed or error');
+    return;
+  }
+  state.coins        = res.coins;
+  state.streak       = res.streak;
+  state.lastClaimDate = new Date().toISOString().slice(0,10);
+  saveState();
+  updateUI();
+  updateDailyUI();
+  showToast(`🏆 +${res.reward} LXP Claimed!`);
+}
+
+// Apply referral via server
+async function applyReferralToServer(refId) {
+  await apiCall(`/user/referral/${refId}`, 'POST');
+}
+
+// Sync wallet to server
+async function syncWalletToServer(address) {
+  const res = await apiCall('/user/wallet', 'POST', { wallet_address: address });
+  if (res && res.bonus > 0) {
+    state.coins += res.bonus;
+    state.totalCoins += res.bonus;
+    saveState();
+    updateUI();
+  }
+}
+
+// ── Patch tap handler to use buffer ────────────────────────────────────
+const origTapBtn = document.getElementById('tap-btn');
+origTapBtn.addEventListener('tap-registered', () => { tapBuffer++; });
+
 // ── Init ───────────────────────────────────────────────────────────────
 updateUI();
 updateDailyUI();
-buildLeaderboard();
-buildReferral();
 initTonConnect();
+
+// Load from server then build UI
+loadFromServer().then(() => {
+  buildLeaderboard();
+  buildReferral();
+
+  // Apply referral if new user
+  const urlParams2 = new URLSearchParams(window.location.search);
+  const ref2 = urlParams2.get('ref');
+  if (ref2 && ref2 !== String(userId) && !state.refBonus) {
+    applyReferralToServer(ref2);
+  }
+});
+
+// Override claimDaily to use server
+const _origClaimDaily = claimDaily;
+window.claimDaily = claimDailyFromServer;
+
+// Override buildLeaderboard to use server
+const _origBuildLeaderboard = buildLeaderboard;
+window.buildLeaderboard = loadLeaderboardFromServer;
+
+// Auto sync every 30 seconds
+setInterval(syncToServer, 30000);
+
 </script>
 </body>
 </html>
